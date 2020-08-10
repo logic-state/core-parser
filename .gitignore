@@ -1,3 +1,7 @@
+# binary executable
+main
+
+# nimble and nim specifics
 nimcache/
 nimblecache/
 htmldocs/
