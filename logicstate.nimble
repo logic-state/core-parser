@@ -15,3 +15,4 @@ bin           = @["main"]
 # Dependencies
 
 requires "nim >= 1.2.4"
+requires "npeg >= 0.22.2", "noise >= 0.1.3", "grim >= 0.2.0"
