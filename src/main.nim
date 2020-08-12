@@ -40,7 +40,7 @@ let parser* = peg "transition":
   tIdent <- name.PascalCase
   tOps <- arrow.bidirectional | arrow.forward | arrow.backward
 
-  transition <- forward * >?event(>tIdent) * !1:
+  transition <- transient * >?event(>tIdent) * !1:
     let
       add = (n: string) => graph.addNode(n)
       event = if $1 == "": "" else: $2
@@ -49,7 +49,7 @@ let parser* = peg "transition":
        # BUG: grim can't do bidirectional nor unidirectional graph
        discard graph.addEdge(add(next), add(current), event)
 
-  forward <- state(>tIdent) * tOps * state(>tIdent):
+  transient <- state(>tIdent) * tOps * state(>tIdent):
     case direction:
       of Forward: (current, next) = ($1, $2)
       of Backward: (current, next) = ($2, $1)
