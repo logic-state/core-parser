@@ -16,8 +16,8 @@ grammar "name":
 
 proc parse*(graph: var StateDiagram, input: string): MatchResult[char] =
   var
-    current, next : string
-    direction : Arrow
+    current, next: string
+    direction: Arrow
     g = graph
 
   grammar "arrow": # I wonder if NPeg can pass value like pom-rs 🤔
@@ -34,16 +34,16 @@ proc parse*(graph: var StateDiagram, input: string): MatchResult[char] =
     tIdent <- name.PascalCase
     tOps <- arrow.bidirectional | arrow.forward | arrow.backward
 
-    transition <- transient * >?event(>tIdent) * !1:
+    transition <- transient * >?event( > tIdent) * !1:
       let event = if $1 == "": "" else: $2
       g.addEdge(current, next, event)
       if direction == Bidirectional:
-         g.addEdge(next, current, event)
+        g.addEdge(next, current, event)
 
-    transient <- state(>tIdent) * tOps * state(>tIdent):
+    transient <- state( > tIdent) * tOps * state( > tIdent):
       case direction:
         of Forward: (current, next) = ($1, $2)
         of Backward: (current, next) = ($2, $1)
         of Bidirectional: discard
 
-  result = parser.match(input) ; graph = g
+  result = parser.match(input); graph = g

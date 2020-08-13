@@ -2,7 +2,7 @@ import graph, parser
 
 when isMainModule:
   var fsm = StateDiagram(diagram:
-             when defined(graph): Multidigraph
+    when defined(graph): Multidigraph
                             else: TransitionTable)
 
   while true:

@@ -18,7 +18,7 @@ type Node = ref object
   transitions: Table[Event, Node]
 
 proc `$`(node: Node): string =
-  result = &"(name: {node.name}, transitions: {node.transitions})"
+  &"(name: {node.name}, transitions: {node.transitions})"
 
 proc `[]`(node: Node, name: State): Node =
   if node.name != name:
@@ -44,6 +44,7 @@ proc add(node: Node, key: Event, val: Node) =
 proc `[]=`(node: Node, key: Event, val: Node) =
   node.transitions[key] = val
 
+
 type
   Diagram* {.pure.} = enum
     TransitionTable, Multidigraph
@@ -58,10 +59,11 @@ type
 
 
 proc `$`*(machine: StateDiagram): string =
-  let data = case machine.diagram:
+  &"(diagram: {machine.diagram},\n $1)" % [
+    case machine.diagram:
     of TransitionTable: &"table: {machine.table}"
     of Multidigraph: &"graph: {machine.graph}"
-  result = &"(diagram: {machine.diagram},\n $1)" % [$data]
+  ]
 
 
 proc addEdge*(transition: var StateDiagram,
@@ -76,18 +78,20 @@ proc addEdge*(transition: var StateDiagram,
   of Multidigraph:
     if transition.graph != nil:
       if next.State in transition.graph:
-        transition.graph[current.State][trigger.Event] = transition.graph[next.State]
+        transition.graph[current.State][trigger.Event] =
+          transition.graph[next.State]
       else:
         transition.graph[current.State][trigger.Event] = next.State
     else:
       transition.graph = Node(name: current.State,
                               transitions: {
                                 trigger.Event: Node(name: next.State)
-                              }.toTable)
+        }.toTable)
+
 
 when isMainModule:
   var fsm = StateDiagram(diagram:
-             when defined(graph): Multidigraph
+    when defined(graph): Multidigraph
                             else: TransitionTable)
 
   fsm.addEdge("A", "B", "C")
@@ -104,7 +108,7 @@ when isMainModule:
     of Multidigraph:
       echo "TODO: implement isCyclic(n: Node) to avoid infinite recursion"
       echo "\ncontain state F: ",
-           "F".State in fsm.graph   # print true, and compile fine
+           "F".State in fsm.graph # print true, and compile fine
     of TransitionTable:
       echo "It's just 2D hashtable, there is no recursion in it"
       echo '\n', fsm
