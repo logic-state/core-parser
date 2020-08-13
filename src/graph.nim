@@ -1,4 +1,4 @@
-import tables, hashes, strformat
+import tables, hashes, strformat, strutils, sugar
 
 type
   Event = distinct string
@@ -17,8 +17,8 @@ type Node = ref object
   name: State
   transitions: Table[Event, Node]
 
-proc `$`(ro: Node): string =
-  result = &"(name: {ro.name}, transitions: {ro.transitions})"
+proc `$`(node: Node): string =
+  result = &"(name: {node.name}, transitions: {node.transitions})"
 
 proc `[]`(node: Node, name: State): Node =
   if node.name != name:
@@ -35,15 +35,21 @@ proc contains(node: Node, name: State): bool =
 proc add(node: Node, key: Event, val: State) =
   node.transitions.add(key, Node(name: val))
 
+proc `[]=`(node: Node, key: Event, val: State) =
+  node.transitions[key] = Node(name: val)
+
 proc add(node: Node, key: Event, val: Node) =
   node.transitions.add(key, val)
+
+proc `[]=`(node: Node, key: Event, val: Node) =
+  node.transitions[key] = val
 
 type
   Diagram* {.pure.} = enum
     TransitionTable, Multidigraph
 
   StateDiagram* = object
-    case diagram: Diagram
+    case diagram*: Diagram
     of TransitionTable:
       table: Table[State, Table[Event, State]]
     of Multidigraph:
@@ -51,22 +57,28 @@ type
                   # to handle orphan Nodes?
 
 
+proc `$`*(machine: StateDiagram): string =
+  let data = case machine.diagram:
+    of TransitionTable: &"table: {machine.table}"
+    of Multidigraph: &"graph: {machine.graph}"
+  result = &"(diagram: {machine.diagram},\n $1)" % [$data]
+
+
 proc addEdge*(transition: var StateDiagram,
               current: string, next: string, trigger: string) =
   case transition.diagram:
   of TransitionTable:
     if current.State in transition.table:
-      transition.table[current.State].add(trigger.Event, next.State)
+      transition.table[current.State][trigger.Event] = next.State
     else:
       transition.table.add(current.State,
                           {trigger.Event: next.State}.toTable)
   of Multidigraph:
     if transition.graph != nil:
       if next.State in transition.graph:
-        transition.graph[current.State]
-          .add(trigger.Event, transition.graph[next.State])
+        transition.graph[current.State][trigger.Event] = transition.graph[next.State]
       else:
-        transition.graph[current.State].add(trigger.Event, next.State)
+        transition.graph[current.State][trigger.Event] = next.State
     else:
       transition.graph = Node(name: current.State,
                               transitions: {
@@ -74,10 +86,9 @@ proc addEdge*(transition: var StateDiagram,
                               }.toTable)
 
 when isMainModule:
-  when defined(graph):
-    var fsm = StateDiagram(diagram: Multidigraph)
-  else:
-    var fsm = StateDiagram(diagram: TransitionTable)
+  var fsm = StateDiagram(diagram:
+             when defined(graph): Multidigraph
+                            else: TransitionTable)
 
   fsm.addEdge("A", "B", "C")
   fsm.addEdge("B", "F", "P")
