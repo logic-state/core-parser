@@ -58,6 +58,14 @@ type
                   # to handle orphan Nodes?
 
 
+iterator pairs*(machine: StateDiagram): (string, Table[string, string]) =
+  for current, transition in machine.table.pairs:
+    var table = initTable[string, string]()
+    for trigger, next in transition.pairs:
+      table.add(trigger.string, next.string)
+    yield (current.string, table)
+
+
 proc `$`*(machine: StateDiagram): string =
   &"(diagram: {machine.diagram},\n $1)" % [
     case machine.diagram:

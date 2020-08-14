@@ -1,4 +1,4 @@
-import graph, parser
+import graph, parser, generator
 
 when isMainModule:
   var fsm = StateDiagram(diagram:
@@ -8,4 +8,5 @@ when isMainModule:
   while true:
     stdout.write "> "
     doAssert fsm.parse(stdin.readLine()).ok
-    echo fsm
+    echo fsm.generate(into=StatePattern,
+                      format=TypescriptInterface)
