@@ -9,4 +9,4 @@ when isMainModule:
     stdout.write "> "
     doAssert fsm.parse(stdin.readLine()).ok
     echo fsm.generate(into=TypeState,
-                      format=JavascriptCode)
+                      format=TypescriptCode)

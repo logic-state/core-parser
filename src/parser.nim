@@ -8,7 +8,7 @@ type Arrow {.pure.} = enum
   Forward, Backward, Bidirectional
 
 
-grammar "name":
+grammar "name": # Unused. Reserved for the linter
   PascalCase <- +(Upper * *Alpha)
   camelCase <- +(Lower * *Alpha)
   snake_case <- +(Lower * ?'_' * Lower)
@@ -31,7 +31,7 @@ proc parse*(graph: var StateDiagram, input: string): MatchResult[char] =
   let parser = peg "transition":
     state(format) <- *utf8.space * format * *utf8.space
     event(format) <- *utf8.space * '@' * *utf8.space * format
-    tIdent <- name.PascalCase
+    tIdent <- +( (Alpha * ?Digit) | '_' )
     tOps <- arrow.bidirectional | arrow.forward | arrow.backward
 
     transition <- transient * >?event( > tIdent) * !1:

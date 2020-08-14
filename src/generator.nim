@@ -1,24 +1,27 @@
 import graph, tables, strformat, strutils, sugar
 
+import utils
+
 
 proc tsInterface(machine: StateDiagram): string =
   for current, transition in machine.pairs:
-    result &= &"export interface {current} {{"
+    result &= &"export interface {current.PascalCase} {{"
     for trigger, next in transition.pairs:
       if trigger != "":
-        result &= &"\n\t{trigger}(): {next}"
+        result &= (&"\n{trigger.camelCase}(): {next.PascalCase}").indent(2)
     result.add("\n}\n")
 
 proc jsCode(machine: StateDiagram, typescript: bool = false): string =
   for current, transition in machine.pairs:
-    result &= &"export class {current} {{"
+    result &= &"export class {current.PascalCase} {{"
     for trigger, next in transition.pairs:
       if trigger != "":
-        let returnType = if typescript: &": {next}" else: ""
-        result &= &"\n\t{trigger}(){returnType} {{" &
-          "\n\t\t// side-effect" &
-          &"\n\t\treturn new {next}()" &
-        "\n\t}}"
+        let retTy = if typescript: &": {next.PascalCase}" else: ""
+        result &= (&"\n{trigger.camelCase}(){retTy} {{").indent(2)
+        result &= (&"\n// side-effect" &
+                   &"\nreturn new {next.PascalCase}()"
+                  ).indent(4)
+        result &= "\n}".indent(2)
     result.add("\n}\n")
 
 type
