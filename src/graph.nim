@@ -4,7 +4,7 @@ type
   Event = distinct string
   State = distinct string
 
-# Is there a syntatic sugar for this 😂, a macro maybe
+# TODO: create template method to make this pretty
 proc hash(s: Event): Hash {.borrow.}
 proc hash(s: State): Hash {.borrow.}
 proc `==`(x, y: Event): bool {.borrow.}
@@ -13,11 +13,14 @@ proc `$`(s: Event): string {.borrow.}
 proc `$`(s: State): string {.borrow.}
 
 
-type Node = ref object
-  name: State
-  transitions: Table[Event, Node]
+type
+# CyclicTable = Table[State, Table[Event, CyclicTable]] # not yet used
+  Node = ref object
+    name: State
+    transitions: Table[Event, Node]
 
-proc `$`(node: Node): string =
+# TODO: use cyclomatic number to prevent infinite recursion on cyclic transition
+proc `$`(node: Node, cyclomatic: int = 0): string =
   &"(name: {node.name}, transitions: {node.transitions})"
 
 proc `[]`(node: Node, name: State): Node =
@@ -53,17 +56,10 @@ type
     case diagram*: Diagram
     of TransitionTable:
       table: Table[State, Table[Event, State]]
+#     graph: CyclicTable # in consideration
     of Multidigraph:
       graph: Node # should I store it as a seq[Node]
                   # to handle orphan Nodes?
-
-
-iterator pairs*(machine: StateDiagram): (string, Table[string, string]) =
-  for current, transition in machine.table.pairs:
-    var table = initTable[string, string]()
-    for trigger, next in transition.pairs:
-      table.add(trigger.string, next.string)
-    yield (current.string, table)
 
 
 proc `$`*(machine: StateDiagram): string =
@@ -72,6 +68,24 @@ proc `$`*(machine: StateDiagram): string =
     of TransitionTable: &"table: {machine.table}"
     of Multidigraph: &"graph: {machine.graph}"
   ]
+
+
+proc transient(machine: StateDiagram): Table[State, State] =
+  for current, transition in machine.table.pairs:
+    for trigger, next in transition.pairs:
+      if trigger == "".Event: result.add(current, next)
+
+
+iterator pairs*(machine: StateDiagram): (string, Table[string, string]) =
+  let transient = machine.transient
+  for current, transition in machine.table.pairs:
+    var table : Table[string, string]
+    for trigger, next in transition.pairs:
+      if transient.hasKey(next):
+        table.add(trigger.string, transient[next].string)
+      else:
+        table.add(trigger.string, next.string)
+    yield (current.string, table)
 
 
 proc addEdge*(transition: var StateDiagram,
@@ -94,7 +108,7 @@ proc addEdge*(transition: var StateDiagram,
       transition.graph = Node(name: current.State,
                               transitions: {
                                 trigger.Event: Node(name: next.State)
-        }.toTable)
+                              }.toTable)
 
 
 when isMainModule:

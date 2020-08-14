@@ -20,7 +20,7 @@ type
     LLVMBytecode, LLVMIR
 
   Implementation* {.pure.} = enum
-    StatePattern, MapLiteral, ConditionalStatement
+    TypeState, Collection, ConditionalStatement
 
 
 proc generate*(machine: StateDiagram,
@@ -29,11 +29,11 @@ proc generate*(machine: StateDiagram,
               ): string {.raises:
                 [ConvertError, ValueError].} =
   assert machine.diagram == TransitionTable
-  let err = &"can't generate {format} as {into}"
+  let errMsg = &"can't generate {format} as {into}"
   case into:
-  of StatePattern:
+  of TypeState:
     case format:
     of TypescriptInterface: machine.tsInterface
-    else: raise newException(ConvertError, err) 
-  else: raise newException(ConvertError, err)
+    else: raise newException(ConvertError, errMsg) 
+  else: raise newException(ConvertError, errMsg)
 
