@@ -8,5 +8,5 @@ when isMainModule:
   while true:
     stdout.write "> "
     doAssert fsm.parse(stdin.readLine()).ok
-    echo fsm.generate(into=StatePattern,
-                      format=TypescriptInterface)
+    echo fsm.generate(into=TypeState,
+                      format=JavascriptCode)
