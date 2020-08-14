@@ -42,8 +42,7 @@ proc parse*(graph: var StateDiagram, input: string): MatchResult[char] =
 
     transient <- state( > tIdent) * tOps * state( > tIdent):
       case direction:
-        of Forward: (current, next) = ($1, $2)
+        of Forward, Bidirectional: (current, next) = ($1, $2)
         of Backward: (current, next) = ($2, $1)
-        of Bidirectional: discard
 
   result = parser.match(input); graph = g
