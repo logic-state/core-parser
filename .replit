@@ -1,0 +1,2 @@
+language = "nim"
+run = "sh .config/replit.sh"

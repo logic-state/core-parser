@@ -1,0 +1,8 @@
+# just hit run button and it will be in live reload mode
+# you can see the diagram at examples/detective.svg
+
+when <-> what @ reason
+
+why <- when @ ask
+why <- what @ ask
+why -> how
