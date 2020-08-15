@@ -1,6 +1,5 @@
-import graph, tables, strformat, strutils, sugar
-
-import utils
+import tables, strformat, strutils, sugar
+import graph, utils
 
 
 proc tsInterface(machine: StateDiagram): string =
@@ -24,8 +23,9 @@ proc jsCode(machine: StateDiagram, typescript: bool = false): string =
         result &= "\n}".indent(2)
     result.add("\n}\n")
 
+
 type
-  ConvertError* = object of Exception
+  GeneratorError* = object of CatchableError
 
   Format* {.pure.} = enum
     TypescriptInterface, TypescriptCode, JavascriptCode
@@ -42,15 +42,16 @@ proc generate*(machine: StateDiagram,
                format: Format,
                into: Implementation,
               ): string {.raises:
-                [ConvertError, ValueError].} =
+                [GeneratorError, ValueError].} =
   assert machine.diagram == TransitionTable
   let errMsg = &"can't generate {format} as {into}"
+
   case into:
   of TypeState:
     case format:
     of TypescriptInterface: machine.tsInterface
     of JavascriptCode: machine.jsCode
     of TypescriptCode: machine.jsCode(typescript=true)
-    else: raise newException(ConvertError, errMsg)
-  else: raise newException(ConvertError, errMsg)
+    else: raise newException(GeneratorError, errMsg)
+  else: raise newException(GeneratorError, errMsg)
 

@@ -1,3 +1,7 @@
+# test artifacts
+*.dot
+*.png
+
 # binary executable
 main
 

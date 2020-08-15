@@ -8,12 +8,6 @@ type Arrow {.pure.} = enum
   Forward, Backward, Bidirectional
 
 
-grammar "name": # Unused. Reserved for the linter
-  PascalCase <- +(Upper * *Alpha)
-  camelCase <- +(Lower * *Alpha)
-  snake_case <- +(Lower * ?'_' * Lower)
-
-
 proc parse*(graph: var StateDiagram, input: string): MatchResult[char] =
   var
     current, next: string

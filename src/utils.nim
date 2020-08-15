@@ -1,4 +1,11 @@
-import strutils
+import strutils, npeg
+
+
+grammar "case": # Unused. Reserved for the linter
+  pascal <- +(Upper * *Alpha)
+  camel <- +(Lower * *Alpha)
+  snake <- +(Lower * ?'_' * Lower)
+  hyphen <- +(Lower * ?'-' * Lower)
 
 
 proc normalize(s: string): string =

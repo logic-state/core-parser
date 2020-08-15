@@ -1,4 +1,4 @@
-import graph, parser, generator
+import graph, parser, generator, drawing
 
 when isMainModule:
   var fsm = StateDiagram(diagram:
@@ -6,9 +6,14 @@ when isMainModule:
                             else: TransitionTable)
 
   while true:
-    stdout.write "> "
+    stderr.write "> "
     doAssert fsm.parse(stdin.readLine()).ok
 
+    when defined(debug):
+      echo fsm
+
+    when defined(dot):
+      echo fsm.draw(Graphviz)
     when defined(tsCode):
       echo fsm.generate(into=TypeState,
                       format=TypescriptCode)

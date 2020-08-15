@@ -1,4 +1,4 @@
-import tables, hashes, strformat, strutils, sugar
+import tables, hashes, strformat, strutils, sequtils, sugar
 
 type
   Event = distinct string
@@ -97,6 +97,9 @@ proc addEdge*(transition: var StateDiagram,
     else:
       transition.table.add(current.State,
                           {trigger.Event: next.State}.toTable)
+
+    if next.State notin toSeq(transition.table.keys):
+      transition.table.add(next.State, initTable[Event, State]())
   of Multidigraph:
     if transition.graph != nil:
       if next.State in transition.graph:
