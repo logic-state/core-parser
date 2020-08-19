@@ -3,7 +3,7 @@ import graph, utils
 
 
 proc tsInterface(machine: StateDiagram): string =
-  for current, transition in machine.pairs:
+  for current, transition in machine.traverse:
     result &= &"export interface {current.PascalCase} {{"
     for trigger, next in transition.pairs:
       if trigger != "":
@@ -11,7 +11,7 @@ proc tsInterface(machine: StateDiagram): string =
     result.add("\n}\n")
 
 proc jsCode(machine: StateDiagram, typescript: bool = false): string =
-  for current, transition in machine.pairs:
+  for current, transition in machine.traverse:
     result &= &"export class {current.PascalCase} {{"
     for trigger, next in transition.pairs:
       if trigger != "":
@@ -19,7 +19,7 @@ proc jsCode(machine: StateDiagram, typescript: bool = false): string =
         result &= (&"\n{trigger.camelCase}(){retTy} {{").indent(2)
         result &= (&"\n// side-effect" &
                    &"\nreturn new {next.PascalCase}()"
-                  ).indent(4)
+          ).indent(4)
         result &= "\n}".indent(2)
     result.add("\n}\n")
 
@@ -51,7 +51,7 @@ proc generate*(machine: StateDiagram,
     case format:
     of TypescriptInterface: machine.tsInterface
     of JavascriptCode: machine.jsCode
-    of TypescriptCode: machine.jsCode(typescript=true)
+    of TypescriptCode: machine.jsCode(typescript = true)
     else: raise newException(GeneratorError, errMsg)
   else: raise newException(GeneratorError, errMsg)
 

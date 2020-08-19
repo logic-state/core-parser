@@ -42,19 +42,24 @@ when isMainModule:
       fsm.parse(input)
       fsm.print()
     except SemanticError as e:
-      let loc = input[0..e.matchLen].countLines
-      type Pad {.pure.} = enum Explain, Cause, Problem
-      template pad(ty: Pad): string =
-        let fullpad = ' '.repeat(($max(loc, e.cause+1)).len)
-        case ty:
-        of Explain: fullpad
-        of Cause: ' '.repeat(fullpad.len - ($e.cause).len)
-        of Problem: ' '.repeat(fullpad.len - ($loc).len)
+      when defined(debug): echo fsm
+      when defined(dot):
+        echo fsm.draw(Graphviz)
+      else:
+        let loc = input[0..e.matchLen].countLines
+        type Pad {.pure.} = enum Explain, Cause, Problem
+        template pad(ty: Pad): string =
+          let fullpad = ' '.repeat(($max(loc, e.cause+1)).len)
+          case ty:
+          of Explain: fullpad
+          of Cause: ' '.repeat(fullpad.len - ($e.cause).len)
+          of Problem: ' '.repeat(fullpad.len - ($loc).len)
 
-      echo &"{pad(Cause)}{e.cause+1}| ",
-           input.splitLines[e.cause]
-      echo &"{pad(Problem)}{loc}| ",
-           input[e.matchLen..e.matchMax].strip(chars = {'\c', '\n'})
-      echo &"{pad(Explain)}= ", e.msg
+        echo &"{pad(Cause)}{e.cause+1}| ",
+             input.splitLines[e.cause]
+        echo &"{pad(Problem)}{loc}| ",
+             input[e.matchLen..e.matchMax].strip(chars = {'\c', '\n'})
+        echo &"{pad(Explain)}= ", e.msg
     except SyntaxError as e:
+      when defined(debug): echo fsm
       echo e.msg

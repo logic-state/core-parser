@@ -1,4 +1,4 @@
-import tables, unicode, sequtils, sugar
+import sets, tables, unicode, sequtils, sugar
 import npeg, npeg/lib/utf8
 
 import graph
@@ -55,18 +55,24 @@ proc parse*(graph: var StateDiagram, input: string) =
       if track.hasKeyOrPut(current.State, {trigger.Event: loc}.toTable):
         track[current.State].add(trigger.Event, loc)
 
+      # TODO: refactor this
       if current.State in g.transient or
          track[current.State].len > 1 and trigger == "":
+        let events = toSeq(track[current.State].keys).map(e => e.string).toHashSet
+        if g.error.hasKeyOrPut(current.State, events):
+          g.error[current.State].incl(events)
         error.cause =
           if trigger != "": track[current.State]["".Event]
           else: toSeq(track[current.State].values)[1]
         error.msg =
           "state with transient transition must not have another transition"
-        when not defined(hoisting): fail()
+        when not defined(dot): fail()
       if trigger.Event in g[current]:
+        if g.error.hasKeyOrPut(current.State, [trigger].toHashSet):
+          g.error[current.State].incl(trigger)
         error.cause = track[current.State][trigger.Event]
         error.msg = "a state must not have transitions with the same event"
-        when not defined(hoisting): fail()
+        when not defined(dot): fail()
 
       g.addEdge(current, next, trigger)
       if direction == Bidirectional:

@@ -1,4 +1,4 @@
-import tables, hashes, strformat, strutils, sequtils, sugar
+import sets, tables, hashes, strformat, strutils, sequtils, sugar
 
 type
   Event* = distinct string
@@ -14,7 +14,6 @@ proc `$`(s: State): string {.borrow.}
 
 
 type
-# CyclicTable = Table[State, Table[Event, CyclicTable]] # not yet used
   Node = ref object
     name: State
     transitions: Table[Event, Node]
@@ -53,10 +52,11 @@ type
     TransitionTable, Multidigraph
 
   StateDiagram* = object
+    # WARNING: ["".Event].toHashSet will have .len == 0
+    error*: Table[State, HashSet[string]]
     case diagram*: Diagram
     of TransitionTable:
       table: Table[State, Table[Event, State]]
-#     graph: CyclicTable # in consideration
     of Multidigraph:
       graph: Node # should I store it as a seq[Node]
                   # to handle orphan Nodes?
@@ -81,12 +81,14 @@ proc transient*(machine: StateDiagram): Table[State, State] =
       if trigger == "".Event: result.add(current, next)
 
 
-iterator pairs*(machine: StateDiagram): (string, Table[string, string]) =
+iterator traverse*(machine: StateDiagram,
+                   skipTransient = true,
+                  ): (string, Table[string, string]) =
   let transient = machine.transient
   for current, transition in machine.table.pairs:
-    var table : Table[string, string]
+    var table: Table[string, string]
     for trigger, next in transition.pairs:
-      if next in transient:
+      if skipTransient and next in transient:
         table.add(trigger.string, transient[next].string)
       else:
         table.add(trigger.string, next.string)
@@ -113,10 +115,9 @@ proc addEdge*(transition: var StateDiagram,
       else:
         transition.graph[current.State][trigger.Event] = next.State
     else:
-      transition.graph = Node(name: current.State,
-                              transitions: {
-                                trigger.Event: Node(name: next.State)
-                              }.toTable)
+      transition.graph =
+        Node(name: current.State,
+             transitions: {trigger.Event: Node(name: next.State)}.toTable)
 
 
 when isMainModule:

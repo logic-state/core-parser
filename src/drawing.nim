@@ -1,13 +1,17 @@
-import tables, strformat, strutils, sugar
+import sets, tables, strformat, strutils, sugar
 import graph, utils
 
 
 proc graphviz(machine: StateDiagram): string =
   result &= "digraph {"
-  for current, transition in machine.pairs:
+  for current, transition in machine.traverse(skipTransient = false):
     for trigger, next in transition.pairs:
-      if trigger != "":
-        result &= (&"\n{current} -> {next} [label={trigger}]").indent(2)
+      let trigger = # TODO: simplify this if statement
+        if trigger in machine.error.getOrDefault(current.State):
+          &"[label=\"{trigger}\" color=red]"
+        elif trigger != "": &"[label={trigger}]"
+        else: &""
+      result &= (&"\n{current} -> {next} {trigger}").indent(2)
   result &= "\n}"
 
 
@@ -15,7 +19,7 @@ type
   DrawingError* = object of Defect
 
 # only open-source, please don't include freeware nor propietary one
-  Format* {.pure.} = enum 
+  Format* {.pure.} = enum
     Graphviz, Mermaid, PlantUML, Smcat
 
 
