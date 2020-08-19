@@ -1,14 +1,14 @@
 import tables, hashes, strformat, strutils, sequtils, sugar
 
 type
-  Event = distinct string
-  State = distinct string
+  Event* = distinct string
+  State* = distinct string
 
 # TODO: create template method to make this pretty
-proc hash(s: Event): Hash {.borrow.}
-proc hash(s: State): Hash {.borrow.}
-proc `==`(x, y: Event): bool {.borrow.}
-proc `==`(x, y: State): bool {.borrow.}
+proc hash*(s: Event): Hash {.borrow.}
+proc hash*(s: State): Hash {.borrow.}
+proc `==`*(x, y: Event): bool {.borrow.}
+proc `==`*(x, y: State): bool {.borrow.}
 proc `$`(s: Event): string {.borrow.}
 proc `$`(s: State): string {.borrow.}
 
@@ -62,6 +62,11 @@ type
                   # to handle orphan Nodes?
 
 
+proc `[]`*(machine: StateDiagram, current: string): Table[Event, State] =
+  if current.State in machine.table: machine.table[current.State]
+  else: initTable[Event, State]()
+
+
 proc `$`*(machine: StateDiagram): string =
   &"(diagram: {machine.diagram},\n $1)" % [
     case machine.diagram:
@@ -70,7 +75,7 @@ proc `$`*(machine: StateDiagram): string =
   ]
 
 
-proc transient(machine: StateDiagram): Table[State, State] =
+proc transient*(machine: StateDiagram): Table[State, State] =
   for current, transition in machine.table.pairs:
     for trigger, next in transition.pairs:
       if trigger == "".Event: result.add(current, next)
@@ -81,7 +86,7 @@ iterator pairs*(machine: StateDiagram): (string, Table[string, string]) =
   for current, transition in machine.table.pairs:
     var table : Table[string, string]
     for trigger, next in transition.pairs:
-      if transient.hasKey(next):
+      if next in transient:
         table.add(trigger.string, transient[next].string)
       else:
         table.add(trigger.string, next.string)

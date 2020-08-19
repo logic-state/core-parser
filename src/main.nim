@@ -1,5 +1,5 @@
 import graph, parser, generator, drawing
-
+import strformat, sugar
 
 proc print(fsm: StateDiagram) =
   when defined(debug):
@@ -8,14 +8,14 @@ proc print(fsm: StateDiagram) =
   when defined(dot):
     echo fsm.draw(Graphviz)
   when defined(tsCode):
-    echo fsm.generate(into=TypeState,
-                    format=TypescriptCode)
+    echo fsm.generate(into = TypeState,
+                    format = TypescriptCode)
   when defined(jsCode):
-    echo fsm.generate(into=TypeState,
-                    format=JavascriptCode)
+    echo fsm.generate(into = TypeState,
+                    format = JavascriptCode)
   when defined(tsInterface):
-    echo fsm.generate(into=TypeState,
-                    format=TypescriptInterface)
+    echo fsm.generate(into = TypeState,
+                    format = TypescriptInterface)
 
 
 when isMainModule:
@@ -29,14 +29,32 @@ when isMainModule:
     else: TransitionTable)
 
   while isAtty(stdin) and repl.readLine():
-    let line = repl.getLine
-    discard fsm.parse(line)
+    let input = repl.getLine
+    fsm.parse(input)
 
     fsm.print()
     when promptHistory:
-      if line.len > 0: repl.historyAdd(line)
+      if input.len > 0: repl.historyAdd(input)
 
   if not isAtty(stdin):
-    for line in stdin.readAll.splitLines:
-      discard fsm.parse(line)
-    fsm.print()
+    let input = stdin.readAll
+    try:
+      fsm.parse(input)
+      fsm.print()
+    except SemanticError as e:
+      let loc = input[0..e.matchLen].countLines
+      type Pad {.pure.} = enum Explain, Cause, Problem
+      template pad(ty: Pad): string =
+        let fullpad = ' '.repeat(($max(loc, e.cause+1)).len)
+        case ty:
+        of Explain: fullpad
+        of Cause: ' '.repeat(fullpad.len - ($e.cause).len)
+        of Problem: ' '.repeat(fullpad.len - ($loc).len)
+
+      echo &"{pad(Cause)}{e.cause+1}| ",
+           input.splitLines[e.cause]
+      echo &"{pad(Problem)}{loc}| ",
+           input[e.matchLen..e.matchMax].strip(chars = {'\c', '\n'})
+      echo &"{pad(Explain)}= ", e.msg
+    except SyntaxError as e:
+      echo e.msg
