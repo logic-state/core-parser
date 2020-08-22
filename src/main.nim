@@ -1,5 +1,5 @@
-import graph, parser, generator, drawing
-import strformat, sugar
+import graph, parser, generator, drawing, error
+import strformat, tables, sequtils, sugar
 
 proc print(fsm: StateDiagram) =
   when defined(debug):
@@ -46,20 +46,7 @@ when isMainModule:
       when defined(dot):
         echo fsm.draw(Graphviz)
       else:
-        let loc = input[0..e.matchLen].countLines
-        type Pad {.pure.} = enum Explain, Cause, Problem
-        template pad(ty: Pad): string =
-          let fullpad = ' '.repeat(($max(loc, e.cause+1)).len)
-          case ty:
-          of Explain: fullpad
-          of Cause: ' '.repeat(fullpad.len - ($e.cause).len)
-          of Problem: ' '.repeat(fullpad.len - ($loc).len)
-
-        echo &"{pad(Cause)}{e.cause+1}| ",
-             input.splitLines[e.cause]
-        echo &"{pad(Problem)}{loc}| ",
-             input[e.matchLen..e.matchMax].strip(chars = {'\c', '\n'})
-        echo &"{pad(Explain)}= ", e.msg
+        echo e.explain(input)
     except SyntaxError as e:
       when defined(debug): echo fsm
       echo e.msg

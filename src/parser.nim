@@ -1,18 +1,10 @@
 import sets, tables, unicode, sequtils, sugar
 import npeg, npeg/lib/utf8
 
-import graph
+import graph, error
 
 
 type
-  SyntaxError* = NPegException
-  #Cause = object # reserved until NPeg support accessing
-  #                 matchLen/Max in codeblock
-  #  matchLen*, matchMax*: Natural
-  SemanticError* = object of CatchableError
-    cause*: Natural #linenumber
-    matchLen*, matchMax*: Natural
-
   Track = Table[State, Table[Event, Natural]]
 
   Arrow {.pure.} = enum
@@ -21,7 +13,7 @@ type
 
 proc parse*(graph: var StateDiagram, input: string) =
   var
-    loc: Natural # workaround since matchLen/Max not in NPeg codeblock 😞
+    loc: Natural = 1 # workaround since matchLen/Max not in NPeg codeblock 😞
     track: Track
     error = new SemanticError
     current, next: string
@@ -52,27 +44,26 @@ proc parse*(graph: var StateDiagram, input: string) =
     transition <- transient * >?event( > tIdent|E"missing event name"):
       let trigger = if $1 == "": "" else: $2
 
-      if track.hasKeyOrPut(current.State, {trigger.Event: loc}.toTable):
-        track[current.State].add(trigger.Event, loc)
+      proc errCheck(current: string) = # TODO: refactor this
+        if track.hasKeyOrPut(current.State, {trigger.Event: loc}.toTable):
+          track[current.State].add(trigger.Event, loc)
+        if current.State in g.transient or
+           track[current.State].len > 1 and trigger == "":
+          let events = toSeq(track[current.State].keys)
+            .map(e => e.string).toHashSet
+          if g.error.hasKeyOrPut(current.State, events):
+            g.error[current.State].incl(events)
+          let lines = toSeq(track[current.State].values)
+          error.addCause(current.State, errTransient, lines)
+        if trigger.Event in g[current]:
+          if g.error.hasKeyOrPut(current.State, [trigger].toHashSet):
+            g.error[current.State].incl(trigger)
+          let line = track[current.State][trigger.Event]
+          error.addCause(current.State, errSameEvent, [line, loc].toSeq)
 
-      # TODO: refactor this
-      if current.State in g.transient or
-         track[current.State].len > 1 and trigger == "":
-        let events = toSeq(track[current.State].keys).map(e => e.string).toHashSet
-        if g.error.hasKeyOrPut(current.State, events):
-          g.error[current.State].incl(events)
-        error.cause =
-          if trigger != "": track[current.State]["".Event]
-          else: toSeq(track[current.State].values)[1]
-        error.msg =
-          "state with transient transition must not have another transition"
-        when not defined(dot): fail()
-      if trigger.Event in g[current]:
-        if g.error.hasKeyOrPut(current.State, [trigger].toHashSet):
-          g.error[current.State].incl(trigger)
-        error.cause = track[current.State][trigger.Event]
-        error.msg = "a state must not have transitions with the same event"
-        when not defined(dot): fail()
+      errCheck(current)
+      if direction == Bidirectional:
+        errCheck(next)
 
       g.addEdge(current, next, trigger)
       if direction == Bidirectional:
@@ -88,7 +79,5 @@ proc parse*(graph: var StateDiagram, input: string) =
 
   let p = parser.match(input)
   if p.ok: graph = g
-  if error.msg != "":
-    error.matchLen = p.matchLen
-    error.matchMax = p.matchMax
+  if error.causes.len > 0:
     raise error
