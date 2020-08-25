@@ -6,7 +6,7 @@ type
   #Cause = object
   #  matchLen*, matchMax*: Natural
   ErrorType* = enum
-    errTransient, errSameEvent
+    errTransient, errSameEvent, errInfiniteLoop
 
   SyntaxError* = NPegException
   SemanticError* = object of CatchableError
@@ -27,6 +27,7 @@ proc `$`(kind: ErrorType): string =
   case kind:
   of errTransient: "is transient state. It must not have another transition"
   of errSameEvent: "state must not have transitions with the same event"
+  of errInfiniteLoop: "state is looping. Loop transition must be triggered by event"
 
 proc explain*(e: ref SemanticError, source: string): string =
   for state in e.causes.keys:

@@ -4,6 +4,7 @@
 
 # binary executable
 main
+dist/
 
 # nimble and nim specifics
 nimcache/

@@ -99,11 +99,9 @@ proc addEdge*(transition: var StateDiagram,
               current: string, next: string, trigger: string) =
   case transition.diagram:
   of TransitionTable:
-    if current.State in transition.table:
-      transition.table[current.State][trigger.Event] = next.State
-    else:
-      transition.table.add(current.State,
-                          {trigger.Event: next.State}.toTable)
+    if transition.table.hasKeyOrPut(current.State,
+         toTable {trigger.Event: next.State}):
+      transition.table[current.State].add(trigger.Event, next.State)
 
     if next.State notin toSeq(transition.table.keys):
       transition.table.add(next.State, initTable[Event, State]())
