@@ -61,6 +61,11 @@ proc parse*(graph: var StateDiagram, input: string) =
           let line = track[current.State][trigger.Event]
           error.addCause(current.State, errSameEvent, [line, loc].toSeq)
 
+      if next in current and trigger == "":
+        if g.error.hasKeyOrPut(next.State, [trigger].toHashSet):
+          g.error[next.State].incl(trigger)
+        error.addCause(next.State, errInfiniteLoop, [loc].toSeq)
+
       errCheck(current)
       if direction == Bidirectional:
         errCheck(next)
