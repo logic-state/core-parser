@@ -1,8 +1,20 @@
-# just hit run button and it will be in live reload mode
-# you can see the diagram at examples/detective.svg
+# just hit [Run▶] button and it will be in live reload mode
+# you can see the live diagram at examples/detective.svg
+
+# ========================================================
+#[TASK 1]
+# this logic is non-deterministic
+# please make it deterministic
 
 when <-> what @ reason
+when --> why  @ ask
+why  --> how
 
-why <- when @ ask
-why <- what @ ask
-why -> how
+what -> what
+why  -> what @ ask
+why  <- when @ ask
+
+# hint 1: compare the errors with the diagram
+# hint 2: comment the statements that cause the errors
+# hint 3: or just fix it without commenting any statements 😃
+# ========================================================
