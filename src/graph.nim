@@ -81,14 +81,26 @@ proc transient*(machine: StateDiagram): Table[State, State] =
       if trigger == "".Event: result.add(current, next)
 
 
+iterator events*(machine: StateDiagram, skipTransient = true): string =
+  var caches: HashSet[string]
+  for transition in machine.table.values:
+    for event in transition.keys:
+      if skipTransient and $event == "": continue
+      if $event notin caches: yield $event
+      if $event != "": caches.incl($event)
+
+
 iterator traverse*(machine: StateDiagram,
-                   skipTransient = true,
+                   skipTransientTransition = true,
+                   skipTransientState = false,
                   ): (string, Table[string, string]) =
   let transient = machine.transient
   for current, transition in machine.table.pairs:
+    if skipTransientState and current in transient:
+      continue
     var table: Table[string, string]
     for trigger, next in transition.pairs:
-      if skipTransient and next in transient:
+      if skipTransientTransition and next in transient:
         table.add(trigger.string, transient[next].string)
       else:
         table.add(trigger.string, next.string)

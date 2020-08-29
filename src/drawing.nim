@@ -4,7 +4,7 @@ import graph, utils
 
 proc graphviz(machine: StateDiagram): string =
   result &= "digraph {"
-  for current, transition in machine.traverse(skipTransient = false):
+  for current, transition in machine.traverse(skipTransientTransition = false):
     for trigger, next in transition.pairs:
       let trigger = # TODO: simplify this if statement
         if trigger in machine.error.getOrDefault(current.State):

@@ -25,9 +25,12 @@ proc pad(number: Natural, c = ' '): string = c.repeat(($number).len)
 
 proc `$`(kind: ErrorType): string =
   case kind:
-  of errTransient: "is transient state. It must not have another transition"
-  of errSameEvent: "state must not have transitions with the same event"
-  of errInfiniteLoop: "state is looping. Loop transition must be triggered by event"
+  of errTransient:
+    "is transient state. It must not have another transition"
+  of errSameEvent:
+    "state must not have transitions with the same event"
+  of errInfiniteLoop:
+    "state is looping. Loop transition must be triggered by event"
 
 proc explain*(e: ref SemanticError, source: string): string =
   for state in e.causes.keys:
