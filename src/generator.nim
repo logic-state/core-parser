@@ -17,6 +17,41 @@ type
 
 # TODO: use template engine instead of doing it procedurally
 
+proc gd(machine: StateDiagram): string =
+  var
+    context = "\nclass Context:" &
+      "\nvar state: State\n".indent(1, "\t")
+    astate = "\nclass State extends Node:" &
+      "\nvar context: Context\n".indent(1, "\t") &
+      "\nfunc _init(ctx: Context = null): context = ctx\n".indent(1, "\t")
+
+  for trigger in machine.events:
+    let fn = trigger.snake_case
+    context &= (&"\nfunc {fn}(): state.{fn}()").indent(1, "\t")
+    astate &= (&"\nfunc {fn}(): pass").indent(1, "\t")
+
+  for current, transition in machine.traverse(skipTransientState = true):
+    result &= &"\nclass {current.PascalCase} extends State:"
+    if transition.len == 0:
+      result &= " pass"
+    else:
+      for trigger, next in transition.pairs:
+        result &= (&"\nfunc {trigger.snake_case}():").indent(1, "\t") & '\n' &
+        (&"""# side-effect
+        context.state = {next.PascalCase}.new(context)
+        """).strip.unindent.indent(2, "\t") & '\n'
+    result.stripLineEnd; result.add("\n\n")
+
+  result ="extends Node\n" & context & "\n\n" & astate & "\n\n" & result
+  result &= "\nfunc _init(state: State) -> Context:\n" &
+  """
+  let ctx = Context.new()
+  state.context = ctx
+  ctx.state = state
+  return ctx
+  """.strip.unindent.indent(1, "\t")
+
+
 proc rsTrait(machine: StateDiagram): string =
   let sp = 4 # indentation
   for current, transition in machine.traverse:
@@ -117,14 +152,14 @@ proc jsCode(machine: StateDiagram,
       context = "class Context " &
         (if typescript:
           "implements IEvent {\n" &
-          "constructor(public state?: State) {}"
+          "constructor(public state?: State) {}\n"
           .indent(2) else: "{")
       astate = "class State " &
         (if typescript:
           "implements IEvent {\n" &
-          "constructor(public context?: Context) {}"
+          "constructor(public context?: Context) {}\n"
           .indent(2) else:
-          "{\n" & "constructor(ctx) { this.context = ctx }"
+          "{\n" & "constructor(ctx) { this.context = ctx }\n"
           .indent(2))
     if typescript: astate = "abstract " & astate
 
@@ -146,16 +181,16 @@ proc jsCode(machine: StateDiagram,
           result &= (&"{trigger.camelCase}() {{").indent(2) & '\n' &
           (&"""// side-effect
           this.context{`!`}.state = new {next.PascalCase}(this.context)
-          """).strip.unindent.indent(4) & "\n}".indent(2) & '\n'
+          """).strip.unindent.indent(4) & "\n}\n".indent(2) & '\n'
         else:
-          result &= (&"{trigger.camelCase}() {{}}").indent(2) & '\n'
+          result &= (&"{trigger.camelCase}() {{}}\n").indent(2) & '\n'
 
       if typescript:
         for trigger in machine.events: result &= genHandler(trigger)
       else:
         for trigger in transition.keys: result &= genHandler(trigger)
 
-      result.stripLineEnd; result.add("\n}\n\n")
+      result = result.strip; result.add("\n}\n\n")
     result = context & '\n' & astate & '\n' & result
     if typescript: result = ievent & '\n' & result
     result &= "export function " &
@@ -185,4 +220,5 @@ proc generate*(machine: StateDiagram,
   of RustTrait: machine.rsTrait
   of TypescriptInterface: machine.tsInterface(into)
   of JavascriptCode, TypescriptCode: machine.jsCode(format, into)
+  of GDScript: machine.gd
   else: raise newException(GeneratorError, errMsg)
