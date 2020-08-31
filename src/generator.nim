@@ -23,7 +23,7 @@ proc rsTrait(machine: StateDiagram): string =
     result &= &"pub trait {current.PascalCase} {{"
     for trigger, next in transition.pairs:
       if trigger == "": continue
-      result &= (&"\nfn {trigger.camelCase}<T: {next.PascalCase}>(self) -> T;").indent(sp)
+      result &= (&"\nfn {trigger.snake_case}<T: {next.PascalCase}>(self) -> T;").indent(sp)
     result.add("\n}\n\n")
   result.strip
 
