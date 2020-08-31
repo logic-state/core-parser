@@ -13,15 +13,27 @@ source ../inquirer/dist/list_input.sh
 
 
 # Interactive prompts
-codes=( 'Javascript' 'Typescript' 'Typescript Interface' )
+codes=( 'Javascript' 'Typescript' 'Typescript Interface' 'Rust Trait' 'Rust')
 list_input "Which code to generate?" codes sel_code
 
-if [ "$sel_code" != 'Typescript Interface' ]; then
-  impls=( 'Type State' 'State Pattern' )
-  list_input "And the state machine going to be implemented as ..." impls sel_impl
-fi
-
 case $sel_code in
+  'Typescript Interface' | 'Rust Trait')
+    impls=( 'Type State' )
+    ;;
+  'Rust')
+    impls=( 'Type State' 'Conditional Statement' )
+    ;;
+  'Javascript' | 'Typescript')
+    impls=( 'Type State' 'State Pattern' )
+    ;;
+esac
+list_input "And the state machine going to be implemented as ..." impls sel_impl
+
+
+# Nim compiler and Bat flags
+case $sel_code in
+  'Rust') fmt=rsCode ; hl=rs ;;
+  'Rust Trait') fmt=rsTrait ; hl=rs ; impl=typestate ;;
   'Typescript Interface') fmt=tsInterface ; hl=ts ; impl=typestate ;;
   'Typescript') fmt=tsCode ; hl=ts ;;
   'Javascript') fmt=jsCode ; hl=js ;;
@@ -29,7 +41,8 @@ esac
 
 case $sel_impl in
   'Type State') impl=typestate ;;
-  'State Pattern') impl=statepattern ;;
+  'State Pattern') impl=statepatt ;;
+  'Conditional Statement') impl=condstmt ;;
 esac
 
 echo '===================================='

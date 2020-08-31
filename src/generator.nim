@@ -17,8 +17,56 @@ type
 
 # TODO: use template engine instead of doing it procedurally
 
-proc tsInterface(machine: StateDiagram,
-                 implementation: Implementation): string =
+proc rsTrait(machine: StateDiagram): string =
+  let sp = 4 # indentation
+  for current, transition in machine.traverse:
+    result &= &"pub trait {current.PascalCase} {{"
+    for trigger, next in transition.pairs:
+      if trigger == "": continue
+      result &= (&"\nfn {trigger.camelCase}<T: {next.PascalCase}>(self) -> T;").indent(sp)
+    result.add("\n}\n\n")
+  result.strip
+
+proc rs(machine: StateDiagram, implementation: Implementation): string =
+  let sp = 4 # indentation
+  case implementation:
+
+  of TypeState:
+    for state in machine.states:
+      result &= &"pub struct {($state).PascalCase};\n"
+    for current, transition in machine.traverse:
+      result &= &"\nimpl {current.PascalCase} {{"
+      for trigger, next in transition.pairs:
+        if trigger == "": continue
+        result &= (&"\npub fn {trigger.snake_case}(self) -> {next.PascalCase} {{")
+          .indent(sp)
+        result &= (&"\ntodo!(\"side-effect\");" &
+                  &"\n{next.PascalCase}"
+          ).indent(2*sp)
+        result &= "\n}".indent(sp)
+      result.add("\n}\n")
+
+  of ConditionalStatement:
+    result = "pub enum State {"
+    for state in machine.states:
+      result &= (&"\n{($state).PascalCase},").indent(sp)
+    result &= "\n}\n" & "\nimpl State {"
+    for trigger, transition in machine.edges:
+      result &= (&"\npub fn {trigger.snake_case}(&self) -> &State {{").indent(sp) &
+                  "\nmatch self {".indent(2*sp)
+      for current, next in transition.pairs:
+        if trigger == "": continue
+        result &= (&"\nState::{current.PascalCase} => &State::{next.PascalCase},")
+          .indent(3*sp)
+      result &= "\n_ => self".indent(3*sp) & "\n}".indent(2*sp) & "\n}".indent(sp)
+    result.add("\n}\n\n")
+
+  else:
+    raise newException(GeneratorError, &"can't generate RustCode as {implementation}")
+  result.strip
+
+
+proc tsInterface(machine: StateDiagram): string =
   for current, transition in machine.traverse:
     result &= &"export interface {current.PascalCase} {{"
     for trigger, next in transition.pairs:
@@ -118,6 +166,8 @@ proc generate*(machine: StateDiagram,
   let errMsg = &"can't generate {format} as {into}"
 
   case format:
-  of TypescriptInterface: machine.tsInterface(into)
+  of RustCode: machine.rs(into)
+  of RustTrait: machine.rsTrait
+  of TypescriptInterface: machine.tsInterface
   of JavascriptCode, TypescriptCode: machine.jsCode(format, into)
   else: raise newException(GeneratorError, errMsg)

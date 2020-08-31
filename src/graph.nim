@@ -9,8 +9,8 @@ proc hash*(s: Event): Hash {.borrow.}
 proc hash*(s: State): Hash {.borrow.}
 proc `==`*(x, y: Event): bool {.borrow.}
 proc `==`*(x, y: State): bool {.borrow.}
-proc `$`(s: Event): string {.borrow.}
-proc `$`(s: State): string {.borrow.}
+proc `$`*(s: Event): string {.borrow.}
+proc `$`*(s: State): string {.borrow.}
 
 
 type
@@ -75,6 +75,9 @@ proc `$`*(machine: StateDiagram): string =
   ]
 
 
+proc states*(machine: StateDiagram): seq[State] =
+  toSeq(machine.table.keys)
+
 proc transient*(machine: StateDiagram): Table[State, State] =
   for current, transition in machine.table.pairs:
     for trigger, next in transition.pairs:
@@ -105,6 +108,15 @@ iterator traverse*(machine: StateDiagram,
       else:
         table.add(trigger.string, next.string)
     yield (current.string, table)
+
+
+iterator edges*(machine: StateDiagram): (string, Table[string, string]) =
+  for event in machine.events:
+    var table: Table[string, string]
+    for current, transition in machine.traverse:
+      if event in transition:
+        table.add($current, $transition[event])
+    yield (event, table)
 
 
 proc addEdge*(transition: var StateDiagram,

@@ -8,13 +8,17 @@ proc print(fsm: StateDiagram) =
     implementation: generator.Implementation
     format: generator.Format
 
-  when defined(tsCode): format = TypescriptCode
-  elif defined(jsCode): format = JavascriptCode
+  when defined(jsCode): format = JavascriptCode
+  elif defined(tsCode): format = TypescriptCode
   elif defined(tsInterface):
     (implementation, format) = (TypeState, TypescriptInterface)
+  elif defined(rsTrait):
+    (implementation, format) = (TypeState, RustTrait)
+  elif defined(rsCode): format = RustCode
 
-  when defined(statepattern): implementation = StatePattern
+  when defined(statepatt): implementation = StatePattern
   elif defined(typestate): implementation = TypeState
+  elif defined(condstmt): implementation = ConditionalStatement
 
   when defined(dot): echo fsm.draw(Graphviz)
   else: echo fsm.generate(format, implementation)
