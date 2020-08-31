@@ -122,15 +122,13 @@ iterator edges*(machine: StateDiagram): (string, Table[string, string]) =
 proc addEdge*(transition: var StateDiagram,
               current: string, next: string, trigger: string) =
   case transition.diagram:
-  of TransitionTable:
-    if current.State in transition.table:
-      transition.table[current.State][trigger.Event] = next.State
-    else:
-      transition.table.add(current.State,
-                          {trigger.Event: next.State}.toTable)
 
+  of TransitionTable:
+    if transition.table.hasKeyOrPut(current.State,{trigger.Event: next.State}.toTable):
+      transition.table[current.State].add(trigger.Event, next.State)
     if next.State notin toSeq(transition.table.keys):
       transition.table.add(next.State, initTable[Event, State]())
+
   of Multidigraph:
     if transition.graph != nil:
       if next.State in transition.graph:
@@ -144,7 +142,7 @@ proc addEdge*(transition: var StateDiagram,
              transitions: {trigger.Event: Node(name: next.State)}.toTable)
 
 
-when isMainModule:
+when isMainModule: # Quick testing
   var fsm = StateDiagram(diagram:
     when defined(graph): Multidigraph
                             else: TransitionTable)
