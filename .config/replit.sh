@@ -13,10 +13,13 @@ source ../inquirer/dist/list_input.sh
 
 
 # Interactive prompts
-codes=( 'Javascript' 'Typescript' 'Typescript Interface' 'Rust Trait' 'Rust')
+codes=( 'Javascript' 'Typescript' 'Typescript Interface' 'Rust Trait' 'Rust' 'GDScript')
 list_input "Which code to generate?" codes sel_code
 
 case $sel_code in
+  'GDScript')
+    impls=( 'State Pattern' )
+    ;;
   'Rust Trait')
     impls=( 'Type State' )
     ;;
@@ -35,6 +38,7 @@ list_input "And the state machine going to be implemented as ..." impls sel_impl
 
 # Nim compiler and Bat flags
 case $sel_code in
+  'GDScript') fmt=gdscript ; hl=py ;;
   'Rust') fmt=rsCode ; hl=rs ;;
   'Rust Trait') fmt=rsTrait ; hl=rs ;;
   'Typescript Interface') fmt=tsInterface ; hl=ts ;;
