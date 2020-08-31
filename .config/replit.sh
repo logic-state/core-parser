@@ -17,14 +17,17 @@ codes=( 'Javascript' 'Typescript' 'Typescript Interface' 'Rust Trait' 'Rust')
 list_input "Which code to generate?" codes sel_code
 
 case $sel_code in
-  'Typescript Interface' | 'Rust Trait')
+  'Rust Trait')
     impls=( 'Type State' )
     ;;
   'Rust')
     impls=( 'Type State' 'Conditional Statement' )
     ;;
+  'Typescript Interface')
+    impls=( 'Type State' 'Record / Collection' )
+    ;;
   'Javascript' | 'Typescript')
-    impls=( 'Type State' 'State Pattern' )
+    impls=( 'Type State' 'State Pattern' 'Record / Collection' )
     ;;
 esac
 list_input "And the state machine going to be implemented as ..." impls sel_impl
@@ -33,8 +36,8 @@ list_input "And the state machine going to be implemented as ..." impls sel_impl
 # Nim compiler and Bat flags
 case $sel_code in
   'Rust') fmt=rsCode ; hl=rs ;;
-  'Rust Trait') fmt=rsTrait ; hl=rs ; impl=typestate ;;
-  'Typescript Interface') fmt=tsInterface ; hl=ts ; impl=typestate ;;
+  'Rust Trait') fmt=rsTrait ; hl=rs ;;
+  'Typescript Interface') fmt=tsInterface ; hl=ts ;;
   'Typescript') fmt=tsCode ; hl=ts ;;
   'Javascript') fmt=jsCode ; hl=js ;;
 esac
@@ -42,6 +45,7 @@ esac
 case $sel_impl in
   'Type State') impl=typestate ;;
   'State Pattern') impl=statepatt ;;
+  'Record / Collection') impl=record ;;
   'Conditional Statement') impl=condstmt ;;
 esac
 

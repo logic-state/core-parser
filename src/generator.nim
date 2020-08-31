@@ -13,7 +13,7 @@ type
     LLVMBytecode, LLVMIR
 
   Implementation* {.pure.} = enum
-    TypeState, StatePattern, Collection, ConditionalStatement
+    TypeState, StatePattern, Record, ConditionalStatement
 
 # TODO: use template engine instead of doing it procedurally
 
@@ -66,12 +66,18 @@ proc rs(machine: StateDiagram, implementation: Implementation): string =
   result.strip
 
 
-proc tsInterface(machine: StateDiagram): string =
+proc tsInterface(machine: StateDiagram, implementation: Implementation): string =
   for current, transition in machine.traverse:
     result &= &"export interface {current.PascalCase} {{"
     for trigger, next in transition.pairs:
-      if trigger != "":
+      if trigger == "": continue
+      case implementation:
+      of TypeState:
         result &= (&"\n{trigger.camelCase}(): {next.PascalCase}").indent(2)
+      of Record:
+        result &= (&"\nreadonly {trigger.camelCase}: {next.PascalCase}").indent(2)
+      else:
+        raise newException(GeneratorError, &"can't generate RustCode as {implementation}")
     result.add("\n}\n\n")
   result.strip
 
@@ -82,17 +88,26 @@ proc jsCode(machine: StateDiagram,
   let typescript = format == TypescriptCode
   case implementation:
 
+  of Record:
+    for current, transition in machine.traverse:
+      result &= &"export class {current.PascalCase} {{"
+      for trigger, next in transition.pairs:
+        if trigger == "": continue
+        let mut = if typescript: "readonly " else: ""
+        result &= (&"\n{mut}{trigger.camelCase} = new {next.PascalCase}").indent(2)
+      result.add("\n}\n\n")
+
   of TypeState:
     for current, transition in machine.traverse:
       result &= &"export class {current.PascalCase} {{"
       for trigger, next in transition.pairs:
-        if trigger != "":
-          let retTy = if typescript: &": {next.PascalCase}" else: ""
-          result &= (&"\n{trigger.camelCase}(){retTy} {{").indent(2)
-          result &= (&"\n// side-effect" &
-                    &"\nreturn new {next.PascalCase}()"
-            ).indent(4)
-          result &= "\n}".indent(2)
+        if trigger == "": continue
+        let retTy = if typescript: &": {next.PascalCase}" else: ""
+        result &= (&"\nget {trigger.camelCase}(){retTy} {{").indent(2)
+        result &= (&"\n// side-effect" &
+                  &"\nreturn new {next.PascalCase}"
+          ).indent(4)
+        result &= "\n}".indent(2)
       result.add("\n}\n\n")
 
   of StatePattern:
@@ -146,7 +161,7 @@ proc jsCode(machine: StateDiagram,
     result &= "export function " &
     (if typescript: "init(state: State): Context" else: "init(state)") &
     " {\n" & """
-    let ctx = new Context()
+    let ctx = new Context
     state.context = ctx
     ctx.state = state
     return ctx
@@ -168,6 +183,6 @@ proc generate*(machine: StateDiagram,
   case format:
   of RustCode: machine.rs(into)
   of RustTrait: machine.rsTrait
-  of TypescriptInterface: machine.tsInterface
+  of TypescriptInterface: machine.tsInterface(into)
   of JavascriptCode, TypescriptCode: machine.jsCode(format, into)
   else: raise newException(GeneratorError, errMsg)
